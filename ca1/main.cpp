@@ -1,5 +1,3 @@
-#include <iostream>
-#include "game.cpp"
 #include "searches.cpp"
 
 int main() {
@@ -11,9 +9,10 @@ int main() {
     // GameState<13> game13;
 
     game3.print();
-    game3.showLegalMoves();
-    game3.makeMove(2, 1);
-    game3.showLegalMoves();
+    game3.makeMove(1, 2);
+    game3.print();
+    game3.makeMove(3, 2);
+    game3.print();
 
     return 0;
 }

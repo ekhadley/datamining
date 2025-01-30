@@ -12,11 +12,14 @@ struct Pos {
     }
 };
 
-template <int size> struct GameState {
+template <int size> struct GameState { // make template so game state array can be compile time known
     char squares[2*size*size - 1]; // we store a flat array corresponding to only the valid portions of the board.
+    GameState* prevState = nullptr; // if this state was reached by making a move on another board, this points to that previous state
     int wrong =  2*(size*size - 1); // the number of pieces on the wrong side of the board. we win when this reaches 0. (heuristic)
     int holex = size - 1; // x position of the hole
     int holey = size - 1; // y position of the hole
+    int movex;
+    int movey;
 
     GameState() {
         int i = 0;
@@ -56,6 +59,8 @@ template <int size> struct GameState {
     }
     void makeMove(int x, int y) {
         char type = get(x, y);
+        movex = x;
+        movey = y;
         set(holex, holey, type);
         holex = x;
         holey = y;
@@ -76,27 +81,27 @@ template <int size> struct GameState {
         vector<Pos> moves; 
         if (get(holex - 1, holey) == 'b') { // if piece to left of hole can move right (is black), add that as a legal move
             moves.push_back(Pos(holex - 1, holey));
-            if (get(holex - 2, holey) == 'b') { // if piece to left of hole can jump right (is black), add that as a legal move
-                moves.push_back(Pos(holex - 2, holey));
-            }
         }
         if (get(holex, holey - 1) == 'b') { // if piece above hole can move down, add that as a legal move
             moves.push_back(Pos(holex, holey - 1));
-            if (get(holex, holey - 2) == 'b') { // if piece above hole can jump down, add that as a legal move
-                moves.push_back(Pos(holex, holey - 2));
-            }
         }
         if (get(holex + 1, holey) == 'w') { // if piece right of hole can move left (is white), add that as a legal move
             moves.push_back(Pos(holex + 1, holey));
-            if (get(holex + 2, holey) == 'w') { // if piece right of hole can jump left (is white), add that as a legal move
-                moves.push_back(Pos(holex + 2, holey));
-            }
         }
         if (get(holex, holey + 1) == 'w') { // if piece below hole can move up, add that as a legal move
             moves.push_back(Pos(holex, holey + 1));
-            if (get(holex, holey + 2) == 'w') { // if piece below hole can jump up, add that as a legal move
-                moves.push_back(Pos(holex, holey + 2));
-            }
+        }
+        if (get(holex - 2, holey) == 'b') { // if piece to left of hole can jump right (is black), add that as a legal move
+            moves.push_back(Pos(holex - 2, holey));
+        }
+        if (get(holex, holey - 2) == 'b') { // if piece above hole can jump down, add that as a legal move
+            moves.push_back(Pos(holex, holey - 2));
+        }
+        if (get(holex + 2, holey) == 'w') { // if piece right of hole can jump left (is white), add that as a legal move
+            moves.push_back(Pos(holex + 2, holey));
+        }
+        if (get(holex, holey + 2) == 'w') { // if piece below hole can jump up, add that as a legal move
+            moves.push_back(Pos(holex, holey + 2));
         }
         return moves;
     }
@@ -105,6 +110,7 @@ template <int size> struct GameState {
         for (Pos move : getLegalMoves()) {
             GameState next = clone();
             next.makeMove(move.x, move.y);
+            next.prevState = this;
             sux.push_back(next);
         }
         return sux;
@@ -116,5 +122,10 @@ template <int size> struct GameState {
             show.set(move.x, move.y, 'x');
         }
         show.print();
+    }
+    void getMoveHisory() {
+        vector<Pos> moves = :while () {
+
+        }
     }
 };
