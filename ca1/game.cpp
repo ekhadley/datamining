@@ -8,7 +8,7 @@ struct Pos {
     int y;
     Pos(int _x, int _y) {
         x = _x;
-        x = _y;
+        y = _y;
     }
 };
 
@@ -29,11 +29,15 @@ template <int size> struct GameState {
         }
     }
     bool inbounds(int x, int y) {
-        return (x < size && y < size) || (x >= size-1 && y >= size-1);
+        if (x < 0 || y < 0) return false;
+        if (x >= size && y < size - 1) return false;
+        if (x < size - 1 && y >= size) return false;
+        if (x > 2*(size - 1) || y > 2*(size - 1)) return false;
+        return true;
     }
     char get(int x, int y) {
         if (inbounds(x, y)) {
-            return squares[y*size + x]; // surprisingly simple indexing
+            return squares[x*size + y]; // surprisingly simple indexing
         } else {
             return '#'; // invalid space
         }
@@ -55,7 +59,7 @@ template <int size> struct GameState {
         set(holex, holey, type);
         holex = x;
         holey = y;
-        set(holex, holey) = ' ';
+        set(holex, holey, ' ');
         if (type == 'w' && x < size && y < size) {
             wrong--;
         }
@@ -66,43 +70,51 @@ template <int size> struct GameState {
         new_state.wrong = wrong;
         return new_state;
     }
-    vector<Pos> legalMoves() { // always 8 potential moves: move left, move right, jump left, jump right, etc.
+    vector<Pos> getLegalMoves() { // always 8 potential moves: move left, move right, jump left, jump right, etc.
         // Since only one hole ever exists on the board, we can identify moves or actions as just the position of the piece that moves.
         // On any given turn, a peice either has 0 or 1 legal moves, never more.
         vector<Pos> moves; 
         if (get(holex - 1, holey) == 'b') { // if piece to left of hole can move right (is black), add that as a legal move
             moves.push_back(Pos(holex - 1, holey));
+            if (get(holex - 2, holey) == 'b') { // if piece to left of hole can jump right (is black), add that as a legal move
+                moves.push_back(Pos(holex - 2, holey));
+            }
         }
         if (get(holex, holey - 1) == 'b') { // if piece above hole can move down, add that as a legal move
             moves.push_back(Pos(holex, holey - 1));
+            if (get(holex, holey - 2) == 'b') { // if piece above hole can jump down, add that as a legal move
+                moves.push_back(Pos(holex, holey - 2));
+            }
         }
         if (get(holex + 1, holey) == 'w') { // if piece right of hole can move left (is white), add that as a legal move
             moves.push_back(Pos(holex + 1, holey));
+            if (get(holex + 2, holey) == 'w') { // if piece right of hole can jump left (is white), add that as a legal move
+                moves.push_back(Pos(holex + 2, holey));
+            }
         }
         if (get(holex, holey + 1) == 'w') { // if piece below hole can move up, add that as a legal move
             moves.push_back(Pos(holex, holey + 1));
-        }
-        if (get(holex - 2, holey) == 'b') { // if piece to left of hole can jump right (is black), add that as a legal move
-            moves.push_back(Pos(holex - 2, holey));
-        }
-        if (get(holex, holey - 2) == 'b') { // if piece above hole can jump down, add that as a legal move
-            moves.push_back(Pos(holex, holey - 2));
-        }
-        if (get(holex + 2, holey) == 'w') { // if piece right of hole can jump left (is white), add that as a legal move
-            moves.push_back(Pos(holex + 2, holey));
-        }
-        if (get(holex, holey + 2) == 'w') { // if piece below hole can jump up, add that as a legal move
-            moves.push_back(Pos(holex, holey + 2));
+            if (get(holex, holey + 2) == 'w') { // if piece below hole can jump up, add that as a legal move
+                moves.push_back(Pos(holex, holey + 2));
+            }
         }
         return moves;
     }
     vector<GameState> getSuccessors() {
         vector<GameState> sux;
-        for (Pos move : legalMoves()) {
+        for (Pos move : getLegalMoves()) {
             GameState next = clone();
             next.makeMove(move.x, move.y);
             sux.push_back(next);
         }
         return sux;
+    }
+    void showLegalMoves() {
+        GameState show = clone();
+        for (Pos move : getLegalMoves()) {
+            printf("move: (%d, %d)\n", move.x, move.y);
+            show.set(move.x, move.y, 'x');
+        }
+        show.print();
     }
 };
