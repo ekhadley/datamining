@@ -124,8 +124,17 @@ template <int size> struct GameState { // make template so game state array can 
         show.print();
     }
     void getMoveHisory() {
-        vector<Pos> moves = :while () {
-
+        vector<Pos> moves;
+        GameState* sptr = this;
+        while (sptr != nullptr) {
+            moves.push_back(Pos(sptr->movex, sptr->movey));
         }
+        return moves;
     }
 };
+
+
+
+
+
+
