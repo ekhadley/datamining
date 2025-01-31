@@ -123,13 +123,30 @@ template <int size> struct GameState { // make template so game state array can 
         }
         show.print();
     }
-    void getMoveHisory() {
+    vector<Pos> getMoveHistory() {
         vector<Pos> moves;
         GameState* sptr = this;
         while (sptr != nullptr) {
             moves.push_back(Pos(sptr->movex, sptr->movey));
+            sptr = sptr->prevState;
         }
         return moves;
+    }
+    void printMoveHistory() {
+        vector<Pos> moves = getMoveHistory();
+        printf("Moves: ");
+        for (Pos move: moves) {
+            printf(" (%d %d) ", move.x, move.y);
+        }
+        printf("\n");
+    }
+    void printStateHistory() {
+        vector<GameState> states;
+        auto sptr = this;
+        while (sptr != nullptr) {
+            sptr->print();
+            sptr = sptr->prevState;
+        }
     }
 };
 

@@ -8,11 +8,13 @@ int main() {
     // GameState<11> game11;
     // GameState<13> game13;
 
-    game3.print();
-    game3.makeMove(1, 2);
-    game3.print();
-    game3.makeMove(3, 2);
-    game3.print();
+    auto next1 = game3.getSuccessors()[0];
+    auto next2 = next1.getSuccessors()[0];
+    auto next3 = next2.getSuccessors()[0];
+
+    next3.printStateHistory();
+    
+    next3.getMoveHistory();
 
     return 0;
 }
