@@ -8,13 +8,9 @@ int main() {
     // GameState<11> game11;
     // GameState<13> game13;
 
-    auto next1 = game3.getSuccessors()[0];
-    auto next2 = next1.getSuccessors()[0];
-    auto next3 = next2.getSuccessors()[0];
-
-    next3.printStateHistory();
-    
-    next3.getMoveHistory();
+    game3.playGame();
 
     return 0;
 }
+
+

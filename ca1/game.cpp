@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
+#include <stack>
 using namespace std;
 
 struct Pos {
@@ -31,6 +32,18 @@ template <int size> struct GameState { // make template so game state array can 
             squares[i++] = 'w';
         }
     }
+
+    // Copy constructor
+    GameState(const GameState& other) {
+        std::copy(std::begin(other.squares), std::end(other.squares), std::begin(squares));
+        wrong = other.wrong;
+        holex = other.holex;
+        holey = other.holey;
+        movex = other.movex;
+        movey = other.movey;
+        prevState = other.prevState;
+    }
+
     bool inbounds(int x, int y) {
         if (x < 0 || y < 0) return false;
         if (x >= size && y < size - 1) return false;
@@ -65,7 +78,7 @@ template <int size> struct GameState { // make template so game state array can 
         holex = x;
         holey = y;
         set(holex, holey, ' ');
-        if (type == 'w' && x < size && y < size) {
+        if ((type == 'w' && x < size && y < size) || (type == 'b' && x >= size && y >= size)) {
             wrong--;
         }
     }
@@ -73,6 +86,11 @@ template <int size> struct GameState { // make template so game state array can 
         GameState<size> new_state;
         std::copy(std::begin(squares), std::end(squares), std::begin(new_state.squares));
         new_state.wrong = wrong;
+        new_state.holex = holex;
+        new_state.holey = holey;
+        new_state.movex = movex;
+        new_state.movey = movey;
+        new_state.prevState = prevState;
         return new_state;
     }
     vector<Pos> getLegalMoves() { // always 8 potential moves: move left, move right, jump left, jump right, etc.
@@ -141,11 +159,52 @@ template <int size> struct GameState { // make template so game state array can 
         printf("\n");
     }
     void printStateHistory() {
-        vector<GameState> states;
+        std::stack<GameState*> stateStack;
         auto sptr = this;
         while (sptr != nullptr) {
-            sptr->print();
+            stateStack.push(sptr);
             sptr = sptr->prevState;
+        }
+        while (!stateStack.empty()) {
+            stateStack.top()->print();
+            stateStack.pop();
+        }
+    }
+    void playGame() {
+        while (true) {
+            // Display the current state
+            printf("Current State:\n");
+            print();
+
+            // Show legal moves
+            vector<Pos> legalMoves = getLegalMoves();
+            if (legalMoves.empty()) {
+                printf("No legal moves available. Game over.\n");
+                break;
+            }
+
+            printf("Legal Moves:\n");
+            for (size_t i = 0; i < legalMoves.size(); ++i) {
+                printf("%zu: (%d, %d)\n", i, legalMoves[i].x, legalMoves[i].y);
+            }
+
+            // Ask the user to make a move
+            size_t moveIndex;
+            printf("Enter the index of the move you want to make: ");
+            cin >> moveIndex;
+
+            if (moveIndex >= legalMoves.size()) {
+                printf("Invalid move index. Please try again.\n");
+                continue;
+            }
+
+            // Make the move
+            makeMove(legalMoves[moveIndex].x, legalMoves[moveIndex].y);
+
+            // Display the next state
+            printf("Next State:\n");
+            print();
+            printf("Value of wrong: %d\n", wrong);
         }
     }
 };
