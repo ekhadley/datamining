@@ -2,6 +2,8 @@
 #include <vector>
 #include <math.h>
 #include <stack>
+#include <queue>
+#include <stack>
 using namespace std;
 
 struct Pos {
@@ -53,7 +55,7 @@ template <int size> struct GameState { // make template so game state array can 
     }
     char get(int x, int y) {
         if (inbounds(x, y)) {
-            return squares[x*size + y]; // surprisingly simple indexing
+            return squares[y*size + x]; // surprisingly simple indexing
         } else {
             return '#'; // invalid space
         }
@@ -62,25 +64,24 @@ template <int size> struct GameState { // make template so game state array can 
         squares[y*size + x] = c;
     }
     void print() {
-        for (int x = 0; x < 2*size - 1; x++) {
-            for (int y = 0; y < 2*size - 1; y++) {
+        for (int y = 0; y < 2*size - 1; y++) {
+            for (int x = 0; x < 2*size - 1; x++) {
                 printf("%c ", get(x, y));
             }
             printf("\n");
         }
-        printf("wrong: %d\n", wrong);
     }
     void makeMove(int x, int y) {
         char type = get(x, y);
         movex = x;
         movey = y;
         set(holex, holey, type);
+        if ((type == 'w' && holex < size && holey < size) || (type == 'b' && holex >= size && holey >= size)) {
+            wrong--;
+        }
         holex = x;
         holey = y;
         set(holex, holey, ' ');
-        if ((type == 'w' && x < size && y < size) || (type == 'b' && x >= size && y >= size)) {
-            wrong--;
-        }
     }
     GameState<size> clone() const {
         GameState<size> new_state;
@@ -98,27 +99,35 @@ template <int size> struct GameState { // make template so game state array can 
         // On any given turn, a peice either has 0 or 1 legal moves, never more.
         vector<Pos> moves; 
         if (get(holex - 1, holey) == 'b') { // if piece to left of hole can move right (is black), add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("1 passed\n"); }*/
             moves.push_back(Pos(holex - 1, holey));
         }
         if (get(holex, holey - 1) == 'b') { // if piece above hole can move down, add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("2 passed\n"); }*/
             moves.push_back(Pos(holex, holey - 1));
         }
-        if (get(holex + 1, holey) == 'w') { // if piece right of hole can move left (is white), add that as a legal move
-            moves.push_back(Pos(holex + 1, holey));
-        }
-        if (get(holex, holey + 1) == 'w') { // if piece below hole can move up, add that as a legal move
-            moves.push_back(Pos(holex, holey + 1));
-        }
         if (get(holex - 2, holey) == 'b') { // if piece to left of hole can jump right (is black), add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("3 passed\n"); }*/
             moves.push_back(Pos(holex - 2, holey));
         }
         if (get(holex, holey - 2) == 'b') { // if piece above hole can jump down, add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("4 passed\n"); }*/
             moves.push_back(Pos(holex, holey - 2));
         }
+        if (get(holex + 1, holey) == 'w') { // if piece right of hole can move left (is white), add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("5 passed\n"); }*/
+            moves.push_back(Pos(holex + 1, holey));
+        }
+        if (get(holex, holey + 1) == 'w') { // if piece below hole can move up, add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("6 passed\n"); }*/
+            moves.push_back(Pos(holex, holey + 1));
+        }
         if (get(holex + 2, holey) == 'w') { // if piece right of hole can jump left (is white), add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("7 passed\n"); }*/
             moves.push_back(Pos(holex + 2, holey));
         }
         if (get(holex, holey + 2) == 'w') { // if piece below hole can jump up, add that as a legal move
+            /*if (holex == 1 && holey == 2) { printf("8 passed\n"); }*/
             moves.push_back(Pos(holex, holey + 2));
         }
         return moves;
@@ -170,42 +179,19 @@ template <int size> struct GameState { // make template so game state array can 
             stateStack.pop();
         }
     }
-    void playGame() {
-        while (true) {
-            // Display the current state
-            printf("Current State:\n");
-            print();
-
-            // Show legal moves
-            vector<Pos> legalMoves = getLegalMoves();
-            if (legalMoves.empty()) {
-                printf("No legal moves available. Game over.\n");
-                break;
+    GameState<size> BFS() {
+        queue<GameState> front;
+        front.push(*this);
+        while (!front.empty()) {
+            GameState state = front.front();
+            front.pop();
+            printf("current wrong: %d, nstates: %d\n", state.wrong, front.size());
+            if (state.wrong == 0) return state;
+            for (auto succ : state.getSuccessors()) {
+                front.push(succ);
             }
-
-            printf("Legal Moves:\n");
-            for (size_t i = 0; i < legalMoves.size(); ++i) {
-                printf("%zu: (%d, %d)\n", i, legalMoves[i].x, legalMoves[i].y);
-            }
-
-            // Ask the user to make a move
-            size_t moveIndex;
-            printf("Enter the index of the move you want to make: ");
-            cin >> moveIndex;
-
-            if (moveIndex >= legalMoves.size()) {
-                printf("Invalid move index. Please try again.\n");
-                continue;
-            }
-
-            // Make the move
-            makeMove(legalMoves[moveIndex].x, legalMoves[moveIndex].y);
-
-            // Display the next state
-            printf("Next State:\n");
-            print();
-            printf("Value of wrong: %d\n", wrong);
         }
+        return *this;
     }
 };
 

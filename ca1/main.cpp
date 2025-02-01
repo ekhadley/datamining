@@ -1,4 +1,4 @@
-#include "searches.cpp"
+#include "game.cpp"
 
 int main() {
     GameState<3> game3;
@@ -8,7 +8,8 @@ int main() {
     // GameState<11> game11;
     // GameState<13> game13;
 
-    game3.playGame();
+    GameState done = game3.BFS();
+    done.printStateHistory();
 
     return 0;
 }
