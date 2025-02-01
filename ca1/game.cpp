@@ -175,15 +175,17 @@ template <int size> struct GameState { // make template so game state array can 
         printf("\n");
     }
     void printStateHistory() {
-        stack<GameState*> stateStack;
+        //stack<GameState*> stateStack;
+        vector<GameState*> hist;
         GameState* sptr = this;
         while (sptr != nullptr) {
-            stateStack.push(sptr);
+            //hist.push(sptr);
+            hist.push_back(sptr);
             sptr = sptr->prevState;
         }
-        while (!stateStack.empty()) {
-            stateStack.top()->print();
-            stateStack.pop();
+        for (int i = hist.size() - 1; i > 0; i--) {
+            printf("i: %d\n", i);
+            hist.at(i)->print();
         }
     }
     bool operator==(const GameState& other) const {
