@@ -5,6 +5,8 @@
 #include <queue>
 #include <stack>
 #include <unordered_set>
+#include <memory> // Add this include for smart pointers
+#include <set>
 using namespace std;
 
 struct Pos {
@@ -16,9 +18,12 @@ struct Pos {
     }
 };
 
+
+
+
 template <int size> struct GameState { // make template so game state array can be compile time known
     char squares[2*size*size - 1]; // we store a flat array corresponding to only the valid portions of the board.
-    GameState* prevState = nullptr; // if this state was reached by making a move on another board, this points to that previous state
+    shared_ptr<GameState> prevState = nullptr; // Use shared_ptr instead of raw pointer
     int wrong =  2*(size*size - 1); // the number of pieces on the wrong side of the board. we win when this reaches 0. (heuristic)
     int holex = size - 1; // x position of the hole
     int holey = size - 1; // y position of the hole
@@ -44,7 +49,7 @@ template <int size> struct GameState { // make template so game state array can 
         holey = other.holey;
         movex = other.movex;
         movey = other.movey;
-        prevState = other.prevState;
+        prevState = other.prevState; // shared_ptr handles copying
     }
 
     bool inbounds(int x, int y) {
@@ -103,38 +108,30 @@ template <int size> struct GameState { // make template so game state array can 
     }
     vector<Pos> getLegalMoves() { // always 8 potential moves: move left, move right, jump left, jump right, etc.
         // Since only one hole ever exists on the board, we can identify moves or actions as just the position of the piece that moves.
-        // On any given turn, a peice either has 0 or 1 legal moves, never more.
+        // On any given turn, a peice either has 0 or 1 legal moves, never more, so we can represent moves as just a simple coordinate.
         vector<Pos> moves; 
         if (get(holex - 1, holey) == 'b') { // if piece to left of hole can move right (is black), add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("1 passed\n"); }*/
             moves.push_back(Pos(holex - 1, holey));
         }
         if (get(holex, holey - 1) == 'b') { // if piece above hole can move down, add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("2 passed\n"); }*/
             moves.push_back(Pos(holex, holey - 1));
         }
         if (get(holex - 2, holey) == 'b') { // if piece to left of hole can jump right (is black), add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("3 passed\n"); }*/
             moves.push_back(Pos(holex - 2, holey));
         }
         if (get(holex, holey - 2) == 'b') { // if piece above hole can jump down, add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("4 passed\n"); }*/
             moves.push_back(Pos(holex, holey - 2));
         }
         if (get(holex + 1, holey) == 'w') { // if piece right of hole can move left (is white), add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("5 passed\n"); }*/
             moves.push_back(Pos(holex + 1, holey));
         }
         if (get(holex, holey + 1) == 'w') { // if piece below hole can move up, add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("6 passed\n"); }*/
             moves.push_back(Pos(holex, holey + 1));
         }
         if (get(holex + 2, holey) == 'w') { // if piece right of hole can jump left (is white), add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("7 passed\n"); }*/
             moves.push_back(Pos(holex + 2, holey));
         }
         if (get(holex, holey + 2) == 'w') { // if piece below hole can jump up, add that as a legal move
-            /*if (holex == 1 && holey == 2) { printf("8 passed\n"); }*/
             moves.push_back(Pos(holex, holey + 2));
         }
         return moves;
@@ -144,12 +141,12 @@ template <int size> struct GameState { // make template so game state array can 
         for (Pos move : getLegalMoves()) {
             GameState next = clone();
             next.makeMove(move.x, move.y);
-            next.prevState = this;
+            next.prevState = make_shared<GameState>(*this); // shared_ptr so we can print after returning from the search
             sux.push_back(next);
         }
         return sux;
     }
-    void showLegalMoves() {
+    void printLegalMoves() {
         GameState show = clone();
         for (Pos move : getLegalMoves()) {
             printf("move: (%d, %d)\n", move.x, move.y);
@@ -162,31 +159,23 @@ template <int size> struct GameState { // make template so game state array can 
         GameState* sptr = this;
         while (sptr != nullptr) {
             moves.push_back(Pos(sptr->movex, sptr->movey));
-            sptr = sptr->prevState;
+            sptr = sptr->prevState.get();
         }
         return moves;
     }
     void printMoveHistory() {
-        vector<Pos> moves = getMoveHistory();
-        printf("Moves: ");
-        for (Pos move: moves) {
-            printf(" (%d %d) ", move.x, move.y);
+        if (this->prevState != nullptr) {
+            this->prevState->printMoveHistory();
+        }
+        printf(" (%d %d) ", movex, movey);
+    }
+
+    void printStateHistory() {
+        if (prevState != nullptr) {
+            this->prevState.get()->printStateHistory();
         }
         printf("\n");
-    }
-    void printStateHistory() {
-        //stack<GameState*> stateStack;
-        vector<GameState*> hist;
-        GameState* sptr = this;
-        while (sptr != nullptr) {
-            //hist.push(sptr);
-            hist.push_back(sptr);
-            sptr = sptr->prevState;
-        }
-        for (int i = hist.size() - 1; i > 0; i--) {
-            printf("i: %d\n", i);
-            hist.at(i)->print();
-        }
+        print();
     }
     bool operator==(const GameState& other) const {
         if (this->wrong != other.wrong) return false; // easy checks first
@@ -200,16 +189,21 @@ template <int size> struct GameState { // make template so game state array can 
     string toString() const {
         return string(squares, squares + sizeof(squares));
     }
-    GameState<size> bfs() {
-        queue<GameState<size>> queue;
+    
+
+    bool isLessWrong(const GameState<size>& a, const GameState<size>& b) {
+        return b.wrong < a.wrong;
+    }
+
+    GameState<size> astar() {
+        priority_queue<GameState<size>, GameState<size>::isLessWrong> queue;
         unordered_set<string> visited;
         queue.push(*this);
         visited.insert(this->toString());
         while (!queue.empty()) {
-            GameState<size> current = queue.front();
+            GameState<size> current = queue.top();
             queue.pop();
-            //current.print();
-            //printf("current.wrong = %d\n", current.wrong);
+            if (queue.size()%1000 == 0) printf("size: %d, wrong: %d\n", queue.size(), current.wrong);
             if (current.wrong == 0) return current;
             for (GameState<size> successor : current.getSuccessors()) {
                 string stateStr = successor.toString();
@@ -219,7 +213,8 @@ template <int size> struct GameState { // make template so game state array can 
                 }
             }
         }
-        printf("No solution found by bfs.\n");
+        printf("No solution found by astar.\n");
         return *this;
     }
+
 };
