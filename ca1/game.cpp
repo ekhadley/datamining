@@ -4,6 +4,7 @@
 #include <stack>
 #include <queue>
 #include <stack>
+#include <unordered_set>
 using namespace std;
 
 struct Pos {
@@ -37,7 +38,7 @@ template <int size> struct GameState { // make template so game state array can 
 
     // Copy constructor
     GameState(const GameState& other) {
-        std::copy(std::begin(other.squares), std::end(other.squares), std::begin(squares));
+        copy(begin(other.squares), end(other.squares), begin(squares));
         wrong = other.wrong;
         holex = other.holex;
         holey = other.holey;
@@ -76,7 +77,13 @@ template <int size> struct GameState { // make template so game state array can 
         movex = x;
         movey = y;
         set(holex, holey, type);
-        if ((type == 'w' && holex < size && holey < size) || (type == 'b' && holex >= size && holey >= size)) {
+        // if x + y == 2*(size - 1), then (x, y) is on the diagonal
+        // if x + y > 2*(size - 1)
+        int ldist = 2*(size - 1);
+        if (type == 'b' && (x + y <= ldist) && (holex + holey > ldist)) {
+            wrong--;
+        }
+        if (type == 'w' && (x + y >= ldist) && (holex + holey < ldist)) {
             wrong--;
         }
         holex = x;
@@ -85,7 +92,7 @@ template <int size> struct GameState { // make template so game state array can 
     }
     GameState<size> clone() const {
         GameState<size> new_state;
-        std::copy(std::begin(squares), std::end(squares), std::begin(new_state.squares));
+        copy(begin(squares), end(squares), begin(new_state.squares));
         new_state.wrong = wrong;
         new_state.holex = holex;
         new_state.holey = holey;
@@ -168,8 +175,8 @@ template <int size> struct GameState { // make template so game state array can 
         printf("\n");
     }
     void printStateHistory() {
-        std::stack<GameState*> stateStack;
-        auto sptr = this;
+        stack<GameState*> stateStack;
+        GameState* sptr = this;
         while (sptr != nullptr) {
             stateStack.push(sptr);
             sptr = sptr->prevState;
@@ -179,24 +186,38 @@ template <int size> struct GameState { // make template so game state array can 
             stateStack.pop();
         }
     }
-    GameState<size> BFS() {
-        queue<GameState> front;
-        front.push(*this);
-        while (!front.empty()) {
-            GameState state = front.front();
-            front.pop();
-            printf("current wrong: %d, nstates: %d\n", state.wrong, front.size());
-            if (state.wrong == 0) return state;
-            for (auto succ : state.getSuccessors()) {
-                front.push(succ);
+    bool operator==(const GameState& other) const {
+        if (this->wrong != other.wrong) return false; // easy checks first
+        if (this->holex != other.holex) return false;
+        if (this->holey != other.holey) return false;
+        for (int i = 0; i < 2*size*size - 1; i++) { // otherwise check piece colors
+            if (this->squares[i] != other.squares[i]) return false;
+        }
+        return true;
+    }
+    string toString() const {
+        return string(squares, squares + sizeof(squares));
+    }
+    GameState<size> bfs() {
+        queue<GameState<size>> queue;
+        unordered_set<string> visited;
+        queue.push(*this);
+        visited.insert(this->toString());
+        while (!queue.empty()) {
+            GameState<size> current = queue.front();
+            queue.pop();
+            //current.print();
+            //printf("current.wrong = %d\n", current.wrong);
+            if (current.wrong == 0) return current;
+            for (GameState<size> successor : current.getSuccessors()) {
+                string stateStr = successor.toString();
+                if (visited.find(stateStr) == visited.end()) {
+                    visited.insert(stateStr);
+                    queue.push(successor);
+                }
             }
         }
+        printf("No solution found by bfs.\n");
         return *this;
     }
 };
-
-
-
-
-
-
