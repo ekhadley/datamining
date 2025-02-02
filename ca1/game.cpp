@@ -190,20 +190,20 @@ template <int size> struct GameState { // make template so game state array can 
         return string(squares, squares + sizeof(squares));
     }
     
-
-    bool isLessWrong(const GameState<size>& a, const GameState<size>& b) {
-        return b.wrong < a.wrong;
-    }
+    struct Comparer {
+        bool operator()(const GameState<size>& a, const GameState<size>& b) {
+            return b.wrong < a.wrong;
+        }
+    };
 
     GameState<size> astar() {
-        priority_queue<GameState<size>, GameState<size>::isLessWrong> queue;
+        priority_queue<GameState<size>, Comparer> queue;
         unordered_set<string> visited;
         queue.push(*this);
         visited.insert(this->toString());
         while (!queue.empty()) {
             GameState<size> current = queue.top();
             queue.pop();
-            if (queue.size()%1000 == 0) printf("size: %d, wrong: %d\n", queue.size(), current.wrong);
             if (current.wrong == 0) return current;
             for (GameState<size> successor : current.getSuccessors()) {
                 string stateStr = successor.toString();
