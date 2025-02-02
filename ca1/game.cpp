@@ -23,10 +23,11 @@ struct Pos {
 
 template <int size> struct GameState { // make template so game state array can be compile time known
     char squares[2*size*size - 1]; // we store a flat array corresponding to only the valid portions of the board.
-    shared_ptr<GameState> prevState = nullptr; // Use shared_ptr instead of raw pointer
+    shared_ptr<GameState> prevState = nullptr; // Use shared_ptr instead of raw pointer (gpt suggestion)
     int wrong =  2*(size*size - 1); // the number of pieces on the wrong side of the board. we win when this reaches 0. (heuristic)
     int holex = size - 1; // x position of the hole
     int holey = size - 1; // y position of the hole
+    int nmoves = 0;
     int movex;
     int movey;
 
@@ -49,6 +50,7 @@ template <int size> struct GameState { // make template so game state array can 
         holey = other.holey;
         movex = other.movex;
         movey = other.movey;
+        nmoves = other.nmoves;
         prevState = other.prevState; // shared_ptr handles copying
     }
 
@@ -142,6 +144,7 @@ template <int size> struct GameState { // make template so game state array can 
             GameState next = clone();
             next.makeMove(move.x, move.y);
             next.prevState = make_shared<GameState>(*this); // shared_ptr so we can print after returning from the search
+            next.nmoves = nmoves + 1;
             sux.push_back(next);
         }
         return sux;
@@ -177,27 +180,20 @@ template <int size> struct GameState { // make template so game state array can 
         printf("\n");
         print();
     }
-    bool operator==(const GameState& other) const {
-        if (this->wrong != other.wrong) return false; // easy checks first
-        if (this->holex != other.holex) return false;
-        if (this->holey != other.holey) return false;
-        for (int i = 0; i < 2*size*size - 1; i++) { // otherwise check piece colors
-            if (this->squares[i] != other.squares[i]) return false;
-        }
-        return true;
-    }
+
     string toString() const {
         return string(squares, squares + sizeof(squares));
     }
-    
+
     struct Comparer {
         bool operator()(const GameState<size>& a, const GameState<size>& b) {
-            return b.wrong < a.wrong;
+            //return a.wrong > b.wrong;
+            return (a.nmoves + a.wrong) > (b.nmoves + b.wrong);
         }
     };
 
-    GameState<size> astar() {
-        priority_queue<GameState<size>, Comparer> queue;
+    GameState<size> search() {
+        priority_queue<GameState<size>, vector<GameState<size>>, GameState<size>::Comparer> queue;
         unordered_set<string> visited;
         queue.push(*this);
         visited.insert(this->toString());
@@ -205,6 +201,8 @@ template <int size> struct GameState { // make template so game state array can 
             GameState<size> current = queue.top();
             queue.pop();
             if (current.wrong == 0) return current;
+            int s = queue.size();
+            if (s % 100000 == 0) printf("queue size: %d, current nmoves: %d, current wrong: %d\n", s, current.nmoves, current.wrong);
             for (GameState<size> successor : current.getSuccessors()) {
                 string stateStr = successor.toString();
                 if (visited.find(stateStr) == visited.end()) {
@@ -213,8 +211,7 @@ template <int size> struct GameState { // make template so game state array can 
                 }
             }
         }
-        printf("No solution found by astar.\n");
+        printf("No solution found by search.\n");
         return *this;
     }
-
 };

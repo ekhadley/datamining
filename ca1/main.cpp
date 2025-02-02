@@ -1,10 +1,10 @@
 #include "game.cpp"
 
 int main() {
-    GameState<5> game;
+    GameState<4> game;
 
-    GameState done = game.astar();
-    done.printStateHistory();
+    GameState done = game.search();
+    //done.printStateHistory();
 
     return 0;
 }
