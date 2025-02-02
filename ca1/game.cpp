@@ -1,12 +1,10 @@
 #include <iostream>
-#include <vector>
-#include <math.h>
-#include <stack>
 #include <queue>
-#include <stack>
 #include <unordered_set>
 #include <memory> // Add this include for smart pointers
-#include <set>
+#include <fstream>
+#include <string>
+#include <fstream> 
 using namespace std;
 
 struct Pos {
@@ -17,9 +15,6 @@ struct Pos {
         y = _y;
     }
 };
-
-
-
 
 template <int size> struct GameState { // make template so game state array can be compile time known
     char squares[2*size*size - 1]; // we store a flat array corresponding to only the valid portions of the board.
@@ -177,7 +172,7 @@ template <int size> struct GameState { // make template so game state array can 
         if (prevState != nullptr) {
             this->prevState.get()->printStateHistory();
         }
-        printf("\n");
+        printf("\nmove %d\n", nmoves);
         print();
     }
 
@@ -186,12 +181,11 @@ template <int size> struct GameState { // make template so game state array can 
     }
 
     struct Comparer {
-        bool operator()(const GameState<size>& a, const GameState<size>& b) {
-            //return a.wrong > b.wrong;
-            return (a.nmoves + a.wrong) > (b.nmoves + b.wrong);
+        bool operator()(const GameState<size>& a, const GameState<size>& b) { // returns 'is b better than a' (if using a min prio queue)
+            return a.wrong > b.wrong; // greedy search. works for size 4 and below.
+            //return (a.nmoves + a.wrong) > (b.nmoves + b.wrong); // A* search. doesnt work for size > 3. zero clue why. are my game rules right?
         }
     };
-
     GameState<size> search() {
         priority_queue<GameState<size>, vector<GameState<size>>, GameState<size>::Comparer> queue;
         unordered_set<string> visited;
@@ -200,9 +194,10 @@ template <int size> struct GameState { // make template so game state array can 
         while (!queue.empty()) {
             GameState<size> current = queue.top();
             queue.pop();
-            if (current.wrong == 0) return current;
-            int s = queue.size();
-            if (s % 100000 == 0) printf("queue size: %d, current nmoves: %d, current wrong: %d\n", s, current.nmoves, current.wrong);
+            if (current.wrong == 0){
+                printf("search found solution after exploring %d nodes", queue.size());
+                return current;
+            } 
             for (GameState<size> successor : current.getSuccessors()) {
                 string stateStr = successor.toString();
                 if (visited.find(stateStr) == visited.end()) {
@@ -214,4 +209,24 @@ template <int size> struct GameState { // make template so game state array can 
         printf("No solution found by search.\n");
         return *this;
     }
+    
+    void saveStateHistory() {
+        ofstream file("greedy" + to_string(size*2 - 1) + ".out");
+        writeStateHistory(file);
+        file.close();
+    }
+    
+    void writeStateHistory(ofstream &file) {
+        if (prevState != nullptr) {
+            this->prevState.get()->writeStateHistory(file);
+        }
+        file << endl << "move: " << nmoves << endl;
+        for (int y = 0; y < 2*size - 1; y++) {
+            for (int x = 0; x < 2*size - 1; x++) {
+                file << get(x, y) << " ";
+            }
+            file << endl;
+        }
+    }
+
 };
