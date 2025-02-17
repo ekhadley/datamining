@@ -61,7 +61,7 @@ struct Dataset {
     string relation; // the name of the relation
 
     void print() {
-        cout << "Relation: '" << relation << "' with " << RGOS Encoding ASICnumDataPoints() << " data points and " << attrs.size() << " attributes:" << endl;
+        cout << "Relation: '" << relation << "' with " << numDataPoints() << " data points and " << attrs.size() << " attributes:" << endl;
         for (auto attr : attrs) {
             cout << "  ";
             attr.print();
