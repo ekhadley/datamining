@@ -9,38 +9,6 @@
 #include "arff.cpp"
 using namespace std;
 
-
-// given a dataset and the name of an an attribute, find the entropy of that attribute
-float _entropyOfAttribute(const Dataset& d, string attribute_name) {
-
-    int attr = -1;
-    for (int i = 0; i < d.attrs.size(); i++) {
-        if (d.attrs[i].name == attribute_name) {
-            attr = i;
-            break;
-        }
-    }
-    vector<float> freqs(d.attrs[attr].vals.size(), 0);
-
-    float inc = 1.0 / d.data.at(0).size();
-    for (uint8_t val : d.data[attr]) {
-        freqs.at(val) += inc;
-    }
-
-    float h = 0;
-    for (float p : freqs) {
-            h -= p * log2(p);
-    }
-
-    printf("[");
-    for (float p : freqs) {
-        printf(" %.3f ", p);
-    }
-    printf("]\n");
-        
-    return h;
-}
-
 float infoGain(const Dataset& d, string attribute_name) {
     int class_id = d.attrs.size() - 1; // we assume the last attribute is the target class
     int n_classes = d.attrs[class_id].vals.size(); // number of possible class attribute values
@@ -53,32 +21,38 @@ float infoGain(const Dataset& d, string attribute_name) {
         }
     }
     int n_vals = d.attrs[attr_id].vals.size(); // number of possible values for the class in question
-    vector<vector<float>> freqs; // create a vector which will hold the frequencies of each class value, for each attribute value.
-    vector<int> counts; // counts occurrences of each possible attribute value
+    vector<vector<int>> counts; // create a vector which will hold the counts of each class value, for each attribute value
+    vector<int> total_counts; // counts occurrences of each possible attribute value
     for (int i = 0; i < n_vals; i ++) {
-        freqs.push_back(vector<float>()); // a list for each attribute value
+        counts.push_back(vector<int>()); // a list for each attribute value
         for (int j = 0; j < n_classes; j ++) {
-            freqs[i].push_back(0); // a frequency count for each possible class value
+            counts[i].push_back(0); // a frequency count for each possible class value
         }
     }
 
-    for (int i = 0; i < d.data.size(); i ++) {
-        uint8_t class_val = d.data.at(class_id).at(i);
-        uint8_t attr_val = d.data.at(attr_id).at(i);
-        freqs.at(attr_val).at(class_val) += 1;
+    for (int i = 0; i < d.data.at(attr_id).size(); i ++) { // adding up frequences for each class value for each attribute value
+        uint8_t class_val = d.data.at(class_id).at(i); // attribute value of this datapoint
+        uint8_t attr_val = d.data.at(attr_id).at(i); // class value of the datapoint``
+        counts.at(attr_val).at(class_val) += 1; // log occurrence of class value under specific attr value
+        total_counts.at(attr_val) += 1; // log occurrence of attr value
     }
 
     float h = 0;
-    for (float f : freqs) {
-            h -= f * log2(p);
+    for (int i = 0; i < n_vals; i += 1) {// for each attr val
+        for (int j = 0; j < n_classes; j += 1) { // for each class value
+            float freq = counts.at(i).at(j) / total_counts.at(i);
+            h -= total_counts.at(i) * log2(freq); // not proper information gain but has same order
+        }
     }
 
-    printf("[");
-    for (float f : freqs) {
-        printf(" %.3f ", f);
+    for (int i = 0; i < n_vals; i += 1) {// for each attr val
+        printf("counts for attr %d: [", i)
+        for (int j = 0; j < n_classes; j += 1) { // for each class value
+            float freq = counts.at(i).at(j) / total_counts.at(i);
+            printf(" %d ", counts.at(i).at(j));
+        }
+        printf("]\n");
     }
-    printf("]\n");
-        
     return h;
 }
 
