@@ -10,19 +10,19 @@ struct Attribute {
     vector<string> vals;
     string name;
 
-    uint8_t find(string val) {
+    uint8_t find(string val) const {
         for (int i = 0; i < vals.size(); i++) {
             if (vals.at(i) == val) return i;
         }
         return vals.size();
     }
 
-    string idToVal(uint8_t id) {
+    string idToVal(uint8_t id) const {
         if (id >= vals.size()) return "<UNKNOWN>";
         return vals.at(id);
     }
 
-    void print() {
+    void print() const {
         cout << "Attribute '" << name << "' with values: {";
         for (int i = 0; i < vals.size() - 1; i++ ) {
             cout << "'" << vals.at(i) << "', ";
@@ -37,7 +37,7 @@ struct Dataset {
     vector<Attribute> attrs; // list of attributes which each each datapoint has.
     string relation; // the name of the relation
 
-    void print() {
+    void print() const {
         cout << "Relation: '" << relation << "' with " << numDataPoints() << " data points and " << attrs.size() << " attributes:" << endl;
         for (auto attr : attrs) {
             cout << "  ";
@@ -48,13 +48,13 @@ struct Dataset {
             printDataElem(i);
         }
     }
-    int numDataPoints() {
+    int numDataPoints() const {
         return data.at(0).size();
     }
-    void printDataElem(int idx) {
+    void printDataElem(int idx) const {
         cout << "  " << idx << ":  ";
         for (int attr_idx = 0; attr_idx < attrs.size(); attr_idx++) {
-            Attribute& attr = attrs.at(attr_idx);
+            const Attribute& attr = attrs.at(attr_idx);
             if (idx < data.at(attr_idx).size()) {
                 int attr_id = data.at(attr_idx).at(idx);
                 cout << attrs.at(attr_idx).name << ": " << attr.idToVal(attr_id) << "  ";
@@ -63,6 +63,12 @@ struct Dataset {
             }
         }
         cout << endl;
+    }
+    uint8_t findAttr(string attr_name) const {
+        for (int i = 0; i < attrs.size(); i++) {
+            if (attrs.at(i).name == attr_name) return i;
+        }
+        return attrs.size();
     }
 };
 
